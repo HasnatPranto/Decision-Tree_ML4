@@ -1,4 +1,4 @@
-The breakdown of this ID3 implementation would be something like this:
+The breakdown of this ID3 implementation would be something like this:\
 -> Make a table with _given_ data
 --> Calculate total entropy
 --> Identify all the branches of each feature and calculate feature entropy
