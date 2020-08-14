@@ -12,12 +12,12 @@ public class Decisiontree {
 
   public void readData(String file) throws IOException {
 
-      BufferedReader bufferedReader = new BufferedReader(new FileReader("../"+file));
+      BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
       String[] arr= new String[20];
       String frow; int r=0;
       while ( bufferedReader.readLine()!= null) dataRows++;
 
-      bufferedReader = new BufferedReader(new FileReader("../"+file));
+      bufferedReader = new BufferedReader(new FileReader(file));
 
       while ((frow = bufferedReader.readLine())!= null){
 
@@ -132,19 +132,15 @@ public class Decisiontree {
           currentColumnNumber++;
           branches.clear();
       }
-      System.out.println("\n Selected Feature: "+n.attribute+"\n");
+      System.out.println("\nSelected Feature: "+n.attribute+"\n");
       for(String s: temp){
           String[][] reducedTable= makeChildTable(table, s, newTColumn);
           n.nodes.put(s,expandBranches(s,reducedTable));
       }
-      System.out.println(n.attribute);
+
       for (Map.Entry<String, Node> entry : n.nodes.entrySet()) {
           String key = entry.getKey();
           Node nod = entry.getValue();
-          if(nod.attribute!=null)
-          System.out.println(key+" . "+nod.attribute);
-          else
-              System.out.println(key+" . "+nod.decision);
       }
       return n;
   }
@@ -174,6 +170,8 @@ public class Decisiontree {
       readData(file);
 
        Node n = expandBranches("",table);
+
+        System.out.println("---The Tree--\n");
 
        TurnTheLights_On(n,0);
     }
