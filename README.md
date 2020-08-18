@@ -4,7 +4,7 @@ The breakdown of this ID3 implementation would be something like this:\
 --> Calculate total entropy\
 --> Identify all the branches of each feature and calculate feature entropy\
 --> Pick the feature with the highest info gain\
---> Do a divide and conquer, make child tables where feature column will have each branch it at one time\
+--> Do a divide and conquer, make child tables where feature column will have each branch of it at a time\
 --> Time for recursion, put these child tables inside the old process\
 --> Keep checking for absolute harmony in a branch!\
 <br>
