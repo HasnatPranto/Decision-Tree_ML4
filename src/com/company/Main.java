@@ -8,8 +8,8 @@ public class Main {
     public static void main(String[] args) throws IOException {
         Decisiontree dTree= new Decisiontree();
         Scanner scanner=new Scanner(System.in);
-        System.out.print("File: ");
-        String file= scanner.next();
-        dTree.init(file);
+        System.out.print("File:\n");
+       // String file= scanner.next();
+        dTree.init("mushroom_csv.csv");
     }
 }

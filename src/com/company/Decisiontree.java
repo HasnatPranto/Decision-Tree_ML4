@@ -2,20 +2,20 @@ package com.company;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Decisiontree {
-  String[][] table;
-  int dataRows=0, dataColumns;
+  String[][] table, testTable, allData;
+  int dataRows=0, nTrainSet, dataColumns;
 
   public void readData(String file) throws IOException {
 
       BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
-      String[] arr= new String[20];
+      String[] arr= new String[30];
       String frow; int r=0;
       while ( bufferedReader.readLine()!= null) dataRows++;
+
+      nTrainSet= (int) Math.round((dataRows-1)*.9);
 
       bufferedReader = new BufferedReader(new FileReader(file));
 
@@ -23,16 +23,58 @@ public class Decisiontree {
 
           arr = frow.split(",");
 
-          if(r==0) table=new String[dataRows][arr.length];
+          if(r==0) {
+
+              allData = new String[dataRows][arr.length];
+              table = new String[nTrainSet+1][arr.length];
+              testTable = new String[(dataRows) - nTrainSet][arr.length];
+
+              for (int i=0;i<arr.length;i++) {
+                  testTable[r][i] = arr[i]; table[r][i]=arr[i];
+              }
+          }
 
           for (int i=0;i<arr.length;i++)
-              table[r][i]=arr[i];
+              allData[r][i]=arr[i];
           r+=1;
       }
+
       dataColumns=arr.length;
+
       bufferedReader.close();
+
+      splitData();
   }
 
+  public void splitData(){
+      boolean[] flag= new boolean[dataRows];
+      int rIndex, tindex=1; Random random= new Random();
+
+      for(int i=0;i<nTrainSet;i++){
+        rIndex= random.nextInt(dataRows);
+
+        if(rIndex==0 || flag[rIndex]){ i--;continue;}
+
+        else{
+            for (int j=0;j<dataColumns;j++)
+              table[tindex][j] = allData[rIndex][j]; tindex++;
+              flag[rIndex]=true;
+        }
+      }
+      tindex=1;
+
+      for(int i=1;i<flag.length;i++){
+          if(!flag[i]){
+
+              for (int j=0;j<dataColumns;j++){
+
+                  testTable[tindex][j] = allData[i][j];
+              }
+              tindex++;
+          }
+      }
+     // System.out.println(dataRows+" . "+allData.length+" . "+table.length+" . "+testTable.length+" . "+dataColumns);
+  }
   public  double calculateTotalEntropy(String[][] table){
       double wholeEntropy,dec1=0,dec2=0;
       int dataCount= table.length-1;
@@ -117,7 +159,7 @@ public class Decisiontree {
               
           }
           double d = totalEntropy-featureEntropy;
-          System.out.println("Info Gain for "+ table[0][currentColumnNumber]+": "+  d);
+          //System.out.println("Info Gain for "+ table[0][currentColumnNumber]+": "+  d);
 
           if( (totalEntropy-featureEntropy) > maxGain){
               temp.clear();
@@ -132,7 +174,7 @@ public class Decisiontree {
           currentColumnNumber++;
           branches.clear();
       }
-      System.out.println("\nSelected Feature: "+n.attribute+"\n");
+     // System.out.println("\nSelected Feature: "+n.attribute+"\n");
       for(String s: temp){
           String[][] reducedTable= makeChildTable(table, s, newTColumn);
           n.nodes.put(s,expandBranches(s,reducedTable));
@@ -174,5 +216,11 @@ public class Decisiontree {
         System.out.println("---The Tree--\n");
 
        TurnTheLights_On(n,0);
+
+       CrossValidation xval= new CrossValidation(testTable,dataColumns);
+
+       xval.accuracyTest(n);
+
+        System.out.println("*Total data= "+(allData.length-1)+", Train Data= "+(table.length-1)+", Test Data= "+(testTable.length-1));
     }
 }
