@@ -6,6 +6,9 @@ import java.util.*;
 
 public class Decisiontree {
   String[][] table, testTable, allData;
+  Map<String, Integer> categoryMap = new HashMap<>();
+  ArrayList<String> classes = new ArrayList<>();
+
   int dataRows=0, nTrainSet, dataColumns;
 
   public void readData(String file) throws IOException {
@@ -13,6 +16,7 @@ public class Decisiontree {
       BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
       String[] arr= new String[30];
       String frow; int r=0;
+
       while ( bufferedReader.readLine()!= null) dataRows++;
 
       nTrainSet= (int) Math.round((dataRows-1)*.9);
@@ -22,6 +26,8 @@ public class Decisiontree {
       while ((frow = bufferedReader.readLine())!= null){
 
           arr = frow.split(",");
+
+          if(r!=0) categoryMap.put(arr[arr.length-1],0);
 
           if(r==0) {
 
@@ -75,23 +81,41 @@ public class Decisiontree {
       }
      // System.out.println(dataRows+" . "+allData.length+" . "+table.length+" . "+testTable.length+" . "+dataColumns);
   }
-  public  double calculateTotalEntropy(String[][] table){
-      double wholeEntropy,dec1=0,dec2=0;
-      int dataCount= table.length-1;
 
-      for (int i = 1; i <= dataCount; i++) {
-          if (table[1][dataColumns-1].equals(table[i][dataColumns-1])) dec1++;
-          else dec2++;
+    public double calculateTotalEntropy(Map<String,Integer>categoryMap, String[][] table){
+
+      Map<String, Integer> copyCat= new HashMap<>(categoryMap);
+
+      for(int i=1; i<table.length;i++)
+          copyCat.put(table[i][dataColumns-1], copyCat.get(table[i][dataColumns-1])+1);
+
+        double entropy = 0; int hCheck=0;
+
+        for (Map.Entry<String, Integer> entry : copyCat.entrySet()) {
+
+            double catFrequency = entry.getValue();
+
+            if(catFrequency>0) hCheck++;
+
+            entropy+= -((catFrequency/(table.length-1))*(Math.log(catFrequency/(table.length-1))/Math.log(2)));
+
+        }
+        if(hCheck==1) return 0;
+
+        return entropy;
+    }
+
+  public double calculateBranchEntropy(Map<String, Integer> catMap, double branchFreq, int rows){
+
+      double entropy = 0;
+      for (Map.Entry<String, Integer> entry : catMap.entrySet()) {
+
+         double catFrequency = entry.getValue();
+
+         entropy+= -((catFrequency/branchFreq)*(Math.log(catFrequency/branchFreq)/Math.log(2)));
+
       }
-      if(dec1==0 || dec2 == 0) return 0;
-      wholeEntropy = -(dec1 / dataCount) * (Math.log(dec1 / dataCount) / Math.log(2)) - (dec2 / dataCount) * (Math.log(dec2 / dataCount) / Math.log(2));
-
-      return wholeEntropy;
-  }
-
-  public double calculateBranchEntropy(double dec1, double dec2, double branchFreq, int rows){
-
-      return (-((dec1/branchFreq)*(Math.log(dec1/branchFreq)/Math.log(2)))-((dec2/branchFreq)*(Math.log(dec2/branchFreq)/Math.log(2))))*(branchFreq/(rows-1));
+      return entropy*(branchFreq/(rows-1));
 
   }
 
@@ -117,7 +141,7 @@ public class Decisiontree {
       return newTable;
   }
 
-  public Node expandBranches(String branchName, String[][] table){
+  public Node expandBranches(String[][] table){
 
       Node n = new Node();
       int rows=table.length;
@@ -126,7 +150,7 @@ public class Decisiontree {
       int currentColumnNumber=0, newTColumn=1;
       double maxGain = 0.0;
       
-      double totalEntropy= calculateTotalEntropy(table);
+      double totalEntropy= calculateTotalEntropy(categoryMap,table);
 
       if(totalEntropy==0){
 
@@ -136,6 +160,7 @@ public class Decisiontree {
       }
 
       while (currentColumnNumber< dataColumns-1){
+
           double featureEntropy=0;
 
           for(int i=1;i<rows;i++)
@@ -143,22 +168,26 @@ public class Decisiontree {
 
           for(String branch: branches){
 
-              double branchFrequency=0; double dec1=0, dec2=0;
+              double branchFrequency=0;
+
+              Map<String, Integer> copyCat = new HashMap<>(categoryMap);
 
               for (int j=1;j<rows;j++){
 
                   if(branch.equals(table[j][currentColumnNumber])){
                       branchFrequency++;
-                      if(table[1][dataColumns-1].equals(table[j][dataColumns-1])) dec1++; else dec2++;
+
+                      copyCat.put(table[j][dataColumns-1], copyCat.get(table[j][dataColumns-1])+1);
                   }
               }
-              if(dec1==0 || dec2==0) 
+
+              if(Collections.frequency(copyCat.values(), 0) == copyCat.size()-1)
                   featureEntropy+=0;
+
               else
-                  featureEntropy += calculateBranchEntropy(dec1,dec2,branchFrequency,rows);
+                  featureEntropy+= calculateBranchEntropy(copyCat,branchFrequency,rows);
               
           }
-          double d = totalEntropy-featureEntropy;
           //System.out.println("Info Gain for "+ table[0][currentColumnNumber]+": "+  d);
 
           if( (totalEntropy-featureEntropy) > maxGain){
@@ -177,13 +206,9 @@ public class Decisiontree {
      // System.out.println("\nSelected Feature: "+n.attribute+"\n");
       for(String s: temp){
           String[][] reducedTable= makeChildTable(table, s, newTColumn);
-          n.nodes.put(s,expandBranches(s,reducedTable));
+          n.nodes.put(s,expandBranches(reducedTable));
       }
 
-      for (Map.Entry<String, Node> entry : n.nodes.entrySet()) {
-          String key = entry.getKey();
-          Node nod = entry.getValue();
-      }
       return n;
   }
 
@@ -211,16 +236,19 @@ public class Decisiontree {
 
       readData(file);
 
-       Node n = expandBranches("",table);
+       Node n = expandBranches(table);
 
         System.out.println("---The Tree--\n");
 
        TurnTheLights_On(n,0);
 
-       CrossValidation xval= new CrossValidation(testTable,dataColumns);
+        for(Map.Entry<String,Integer> entry : categoryMap.entrySet())
+            classes.add(entry.getKey());
 
-       xval.accuracyTest(n);
+        CrossValidation xval= new CrossValidation(testTable,dataColumns,classes);
 
-        System.out.println("*Total data= "+(allData.length-1)+", Train Data= "+(table.length-1)+", Test Data= "+(testTable.length-1));
+        xval.buildConfusionMat(n);
+
+       System.out.println("*Total data= "+(allData.length-1)+", Train Data= "+(table.length-1)+", Test Data= "+(testTable.length-1));
     }
 }
